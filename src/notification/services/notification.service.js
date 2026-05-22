@@ -98,7 +98,17 @@ const sendOrderEmail = async (order, status, gmailConnection) => {
   const tpl = templates[status];
   if (!tpl) return;
 
-  const to = order.shipping?.email || order.user?.email;
+  // Resolve recipient: shipping.email, or populate user if it's an ObjectId
+  let to = order.shipping?.email;
+  if (!to && order.user) {
+    if (typeof order.user === 'object' && order.user.email) {
+      to = order.user.email;
+    } else {
+      const User = require('../../auth/models/User');
+      const user = await User.findById(order.user).select('email').lean();
+      to = user?.email;
+    }
+  }
   if (!to) return;
 
   await transporter.sendMail({ from: `"OOPS Fashion" <${gmailConnection.email}>`, to, subject: tpl.subject, html: tpl.html });

@@ -25,7 +25,12 @@ const otpService = require('./otp.service');
  * @throws {ApiError} 400 invalid token, 409 email taken
  */
 const signup = async ({ name, email, password, phone, tempToken }) => {
-  const decoded = tokenService.verifyTempToken(tempToken);
+  let decoded;
+  try {
+    decoded = tokenService.verifyTempToken(tempToken);
+  } catch {
+    throw new ApiError(400, 'Invalid or expired verification token');
+  }
   if (decoded.email !== email || decoded.purpose !== 'signup' || decoded.type !== 'temp') {
     throw new ApiError(400, 'Invalid or expired verification token');
   }
@@ -156,7 +161,12 @@ const adminVerifyOtp = async (email, otp) => {
  * @throws {ApiError} 400 invalid token, 404 account not found
  */
 const resetPassword = async (email, newPassword, tempToken) => {
-  const decoded = tokenService.verifyTempToken(tempToken);
+  let decoded;
+  try {
+    decoded = tokenService.verifyTempToken(tempToken);
+  } catch {
+    throw new ApiError(400, 'Invalid or expired verification token');
+  }
   if (decoded.email !== email || decoded.purpose !== 'reset-password' || decoded.type !== 'temp') {
     throw new ApiError(400, 'Invalid or expired verification token');
   }

@@ -100,7 +100,7 @@ const placeOrder = async ({ items, shipping, paymentMethod, userId }) => {
         logger.error(`Failed to send order-placed email: ${err.message}`);
       });
     }
-  });
+  }).catch((err) => logger.error(`Failed to load email config: ${err.message}`));
 
 
 
@@ -149,22 +149,27 @@ const getByOrderId = async (orderId, userId) => {
  * @returns {Promise<{orders, total, page, totalPages}>}
  */
 const listAll = async (query) => {
-  const { status, search, page = 1, limit = 20, sort = '-createdAt' } = query;
+  const { status, search, page = 1, limit: rawLimit = 20, sort = '-createdAt' } = query;
+  const limit = Math.min(parseInt(rawLimit) || 20, 100);
   const filter = {};
   if (status) filter.status = status;
   if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { orderId: { $regex: search, $options: 'i' } },
-      { 'shipping.fullName': { $regex: search, $options: 'i' } },
-      { 'shipping.phone': { $regex: search, $options: 'i' } },
+      { orderId: { $regex: escaped, $options: 'i' } },
+      { 'shipping.fullName': { $regex: escaped, $options: 'i' } },
+      { 'shipping.phone': { $regex: escaped, $options: 'i' } },
     ];
   }
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const pageNum = parseInt(page) || 1;
+  const skip = (pageNum - 1) * limit;
+  const allowedSorts = ['createdAt', '-createdAt', 'total', '-total', 'status', '-status'];
+  const safeSort = allowedSorts.includes(sort) ? sort : '-createdAt';
   const [orders, total] = await Promise.all([
-    Order.find(filter).sort(sort).skip(skip).limit(parseInt(limit)),
+    Order.find(filter).sort(safeSort).skip(skip).limit(limit),
     Order.countDocuments(filter),
   ]);
-  return { orders, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) };
+  return { orders, total, page: pageNum, totalPages: Math.ceil(total / limit) };
 };
 
 /**
@@ -214,7 +219,7 @@ const advanceStatus = async (orderId, newStatus, adminUserId) => {
         logger.error(`Failed to send order-${newStatus} email: ${err.message}`);
       });
     }
-  });
+  }).catch((err) => logger.error(`Failed to load email config: ${err.message}`));
 
 
   return order;

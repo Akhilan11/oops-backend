@@ -12,18 +12,20 @@ const ApiError = require('../../utils/ApiError');
  * @returns {Promise<{products: Array, total: number, page: number, totalPages: number}>}
  */
 const listPublic = async (query) => {
-  const { category, status, page = 1, limit = 20, search } = query;
+  const { category, status, page = 1, limit: rawLimit = 20, search } = query;
+  const limit = Math.min(parseInt(rawLimit) || 20, 100);
   const filter = {};
   if (category) filter.category = category;
   if (status)   filter.status = status;
-  if (search)   filter.name = { $regex: search, $options: 'i' };
+  if (search)   filter.name = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
 
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const pageNum = parseInt(page) || 1;
+  const skip = (pageNum - 1) * limit;
   const [products, total] = await Promise.all([
-    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
+    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
     Product.countDocuments(filter),
   ]);
-  return { products, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) };
+  return { products, total, page: pageNum, totalPages: Math.ceil(total / limit) };
 };
 
 /**
@@ -44,18 +46,20 @@ const getById = async (id) => {
  * @returns {Promise<{products: Array, total: number, page: number, totalPages: number}>}
  */
 const listAll = async (query) => {
-  const { page = 1, limit = 20, search, category, status } = query;
+  const { page = 1, limit: rawLimit = 20, search, category, status } = query;
+  const limit = Math.min(parseInt(rawLimit) || 20, 100);
   const filter = {};
   if (category) filter.category = category;
   if (status)   filter.status = status;
-  if (search)   filter.name = { $regex: search, $options: 'i' };
+  if (search)   filter.name = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
 
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const pageNum = parseInt(page) || 1;
+  const skip = (pageNum - 1) * limit;
   const [products, total] = await Promise.all([
-    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
+    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
     Product.countDocuments(filter),
   ]);
-  return { products, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) };
+  return { products, total, page: pageNum, totalPages: Math.ceil(total / limit) };
 };
 
 /**

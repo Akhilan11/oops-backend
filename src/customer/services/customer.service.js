@@ -19,9 +19,10 @@ const listCustomers = async (query) => {
 
   const matchStage = {};
   if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     matchStage.$or = [
-      { 'shipping.fullName': { $regex: search, $options: 'i' } },
-      { 'shipping.phone': { $regex: search, $options: 'i' } },
+      { 'shipping.fullName': { $regex: escaped, $options: 'i' } },
+      { 'shipping.phone': { $regex: escaped, $options: 'i' } },
     ];
   }
 
