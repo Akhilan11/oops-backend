@@ -28,7 +28,6 @@ graph TB
 
     subgraph External
         MONGO[(MongoDB Atlas)]
-        REDIS[(Redis)]
         CLOUD[Cloudinary CDN]
         GMAIL[Gmail OAuth2]
     end
@@ -37,7 +36,6 @@ graph TB
     CONSUMER --> MW
     MW --> Services
     AUTH --> MONGO
-    AUTH --> REDIS
     PROD --> MONGO
     ORD --> MONGO
     ORD --> NOTIF
@@ -47,8 +45,6 @@ graph TB
     SET --> MONGO
     UPL --> CLOUD
     NOTIF --> GMAIL
-    MW -.->|cache| REDIS
-    MW -.->|rate limit| REDIS
 ```
 
 ## Request Lifecycle

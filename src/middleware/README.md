@@ -23,7 +23,7 @@ graph LR
             RA[requireAdmin.js<br/><small>role check</small>]
         end
         subgraph "cache/"
-            CA[cache.js<br/><small>Redis read-through</small>]
+            CA[cache.js<br/><small>In-memory read-through</small>]
         end
         subgraph "error/"
             EH[errorHandler.js<br/><small>global catch-all</small>]
@@ -111,25 +111,21 @@ Must be used AFTER `verifyAccessToken`. Checks `req.user.role === 'admin'`.
 
 ### `cacheMiddleware(prefix, ttlSeconds)`
 
-Redis read-through cache. Builds cache key from prefix + sorted query params hash.
+In-memory read-through cache. Builds cache key from prefix + sorted query params hash.
 
 ```
   Request: GET /api/products?category=Tops&page=1
     │
-    ├── Redis connected?
+    ├── Build key: "products:list:a1b2c3d4" (md5 of sorted query)
     │     │
-    │     ├── NO  → skip cache, call next()
+    │     ├── Key exists in cache?
+    │     │     └── YES (HIT) → return cached JSON, skip controller
     │     │
-    │     └── YES → build key: "products:list:a1b2c3d4" (md5 of sorted query)
-    │               │
-    │               ├── Key exists in Redis?
-    │               │     └── YES (HIT) → return cached JSON, skip controller
-    │               │
-    │               └── NO (MISS) → call next()
-    │                               intercept res.json()
-    │                               on success (status < 400):
-    │                                 write response to Redis with TTL
-    │                               send response to client
+    │     └── NO (MISS) → call next()
+    │                       intercept res.json()
+    │                       on success (status < 400):
+    │                         write response to cache with TTL
+    │                       send response to client
 ```
 
 **Cache TTLs used across services:**
@@ -145,7 +141,7 @@ Redis read-through cache. Builds cache key from prefix + sorted query params has
 
 ## security/rateLimiter.js
 
-Six pre-configured rate limiters. Redis-backed if connected, in-memory fallback otherwise.
+Six pre-configured rate limiters using in-memory storage.
 
 | Export | Window | Max Requests | Key | Used By |
 |--------|--------|-------------|-----|---------|

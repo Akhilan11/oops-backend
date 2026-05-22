@@ -29,7 +29,7 @@ graph TB
     PC --> PS
     AC --> PS
     PS --> PM
-    PS -.->|invalidate on write| REDIS[(Redis<br/>products:*)]
+    PS -.->|invalidate on write| CACHE[In-memory Cache<br/>products:*]
 ```
 
 ## Folder Structure

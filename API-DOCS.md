@@ -34,7 +34,7 @@
 GET /api/health
 ```
 
-Returns server health status including database and Redis connectivity.
+Returns server health status including database connectivity.
 
 **Authorization:** None
 
@@ -45,8 +45,7 @@ Returns server health status including database and Redis connectivity.
   "success": true,
   "status": "ok",
   "uptime": 12345,
-  "db": "connected",
-  "redis": "connected"
+  "db": "connected"
 }
 ```
 

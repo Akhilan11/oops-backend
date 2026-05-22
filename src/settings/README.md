@@ -25,7 +25,7 @@ graph TB
     R -->|auth + admin + cache 10min| C
     C --> S
     S --> M
-    S -.->|invalidate settings:*| REDIS[(Redis)]
+    S -.->|invalidate settings:*| CACHE[In-memory Cache]
 ```
 
 ## Folder Structure

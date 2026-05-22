@@ -35,7 +35,7 @@ graph TB
     SS -->|atomic $gte + $inc| PM[(Product.stock)]
     OS --> OM
     OS -.->|async email| NOTIF[notification.service]
-    OS -.->|invalidate| REDIS[(Redis<br/>dashboard:* customers:*)]
+    OS -.->|invalidate| CACHE[In-memory Cache<br/>dashboard:* customers:*]
 ```
 
 ## Folder Structure
