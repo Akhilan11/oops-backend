@@ -18,13 +18,11 @@ const orderShippedTemplate = require('../templates/order-shipped.template');
 const orderDeliveredTemplate = require('../templates/order-delivered.template');
 
 const OAuth2 = google.auth.OAuth2;
-let systemTransporter = null;
 
 /* ── Transporter factories ── */
 
-/** Get or create the system email transporter (from .env OAuth2 creds) */
+/** Create a fresh system email transporter (from .env OAuth2 creds) */
 const getSystemTransporter = async () => {
-  if (systemTransporter) return systemTransporter;
   if (!env.gmail.clientId || !env.gmail.clientSecret || !env.gmail.refreshToken) {
     logger.warn('Gmail OAuth2 not configured — OTP emails will be logged to console');
     return null;
@@ -34,11 +32,10 @@ const getSystemTransporter = async () => {
   oauth2.setCredentials({ refresh_token: env.gmail.refreshToken });
   const { token: accessToken } = await oauth2.getAccessToken();
 
-  systemTransporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     service: 'gmail',
     auth: { type: 'OAuth2', user: env.gmail.from, clientId: env.gmail.clientId, clientSecret: env.gmail.clientSecret, refreshToken: env.gmail.refreshToken, accessToken },
   });
-  return systemTransporter;
 };
 
 /** Create a transactional email transporter from admin-connected Gmail creds */
