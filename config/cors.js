@@ -17,7 +17,8 @@ const corsOptions = {
     if (
       allowedOrigins.includes(origin) ||
       origin.endsWith('.vercel.app') ||
-      origin.endsWith('.netlify.app')
+      origin.endsWith('.netlify.app') ||
+      origin.endsWith('.pages.dev')
     ) {
       return callback(null, true);
     }
