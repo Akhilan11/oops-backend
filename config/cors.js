@@ -1,6 +1,8 @@
 const env = require('./env');
 
 const allowedOrigins = [
+  'https://oopsfashion.in',
+  'https://www.oopsfashion.in',
   'https://oops-frontend.pages.dev',
   env.cors.adminUrl,
   env.cors.frontendUrl,
