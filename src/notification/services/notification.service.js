@@ -68,7 +68,7 @@ const sendOtpEmail = async (to, otp, purpose) => {
 
   const transporter = await getSystemTransporter();
   if (!transporter) {
-    logger.info(`[EMAIL] OTP for ${to}: ${otp} (purpose: ${purpose})`);
+    logger.warn(`[EMAIL] No transporter configured — OTP email to ${to} not sent (purpose: ${purpose})`);
     return;
   }
   await transporter.sendMail({ from: `"OOPS Fashion" <${env.gmail.from}>`, to, subject, html });
