@@ -20,6 +20,7 @@ const customerRoutes = require('./src/customer');
 const dashboardRoutes = require('./src/dashboard');
 const settingsRoutes = require('./src/settings');
 const uploadRoutes = require('./src/upload');
+const reviewRoutes = require('./src/review');
 
 const app = express();
 
@@ -64,6 +65,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes.consumer);
 app.use('/api/admin/auth', authRoutes.admin);
 app.use('/api/products', productRoutes.public);
+app.use('/api/products/:productId/reviews', reviewRoutes.productRouter);
+app.use('/api/reviews', reviewRoutes.reviewRouter);
+app.use('/api/admin/reviews', reviewRoutes.adminRouter);
 app.use('/api/admin/products', productRoutes.admin);
 app.use('/api/orders', orderRoutes.consumer);
 app.use('/api/admin/orders', orderRoutes.admin);
