@@ -1,171 +1,114 @@
 # OOPS Backend
 
-Single Node.js + Express + MongoDB Atlas backend serving both the admin dashboard (`:5173`) and consumer storefront (`:5174`).
+REST API for OOPS Fashion — Node.js + Express + MongoDB Atlas.
 
-## System Overview
+**Live:** https://oops-backend-4ztj.onrender.com
 
-```mermaid
-graph TB
-    subgraph Clients
-        ADMIN[Admin Frontend :5173]
-        CONSUMER[Consumer Frontend :5174]
-    end
+## Tech Stack
 
-    subgraph "Express Server :5000"
-        MW[Middleware Pipeline]
-        subgraph Services
-            AUTH[Auth]
-            PROD[Product]
-            ORD[Order]
-            ADDR[Address]
-            CUST[Customer]
-            DASH[Dashboard]
-            SET[Settings]
-            UPL[Upload]
-            NOTIF[Notification]
-        end
-    end
+- Node.js + Express
+- MongoDB Atlas (Mongoose ODM)
+- JWT auth (access + refresh tokens)
+- Nodemailer + Gmail OAuth2 (transactional emails)
+- Cloudinary (image uploads)
+- Render (hosting)
 
-    subgraph External
-        MONGO[(MongoDB Atlas)]
-        CLOUD[Cloudinary CDN]
-        GMAIL[Gmail OAuth2]
-    end
+## API Endpoints
 
-    ADMIN --> MW
-    CONSUMER --> MW
-    MW --> Services
-    AUTH --> MONGO
-    PROD --> MONGO
-    ORD --> MONGO
-    ORD --> NOTIF
-    ADDR --> MONGO
-    CUST --> MONGO
-    DASH --> MONGO
-    SET --> MONGO
-    UPL --> CLOUD
-    NOTIF --> GMAIL
+### Auth
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/send-otp` | - | Send OTP for signup/reset |
+| POST | `/api/auth/verify-otp` | - | Verify OTP, get temp token |
+| POST | `/api/auth/signup` | - | Create account |
+| POST | `/api/auth/login` | - | Login with email/password |
+| POST | `/api/auth/refresh` | Cookie | Refresh access token |
+| GET | `/api/auth/me` | JWT | Get current user |
+| POST | `/api/auth/change-password` | JWT | Change password |
+| POST | `/api/auth/reset-password` | - | Reset with temp token |
+
+### Products
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/products` | - | List products (pagination, search, filter) |
+| GET | `/api/products/:id` | - | Get product detail |
+| POST | `/api/admin/products` | Admin | Create product |
+| PUT | `/api/admin/products/:id` | Admin | Update product |
+| DELETE | `/api/admin/products/:id` | Admin | Delete product |
+
+### Reviews
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/products/:id/reviews` | - | List reviews (pagination, rating filter) |
+| GET | `/api/products/:id/reviews/summary` | - | Rating breakdown |
+| POST | `/api/products/:id/reviews` | JWT | Create/update review |
+| PATCH | `/api/reviews/:id` | JWT (owner) | Edit own review |
+| POST | `/api/reviews/:id/helpful` | JWT | Toggle helpful |
+| DELETE | `/api/admin/reviews/:id` | Admin | Delete review |
+
+### Orders
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/orders` | JWT | Place order |
+| GET | `/api/orders` | JWT | List user orders |
+| GET | `/api/orders/:orderId` | JWT | Get order detail |
+| PATCH | `/api/admin/orders/:orderId/status` | Admin | Advance order status |
+
+### Addresses
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/addresses` | JWT | List saved addresses |
+| POST | `/api/addresses` | JWT | Add address |
+| PUT | `/api/addresses/:id` | JWT | Update address |
+| DELETE | `/api/addresses/:id` | JWT | Delete address |
+
+### Admin
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/admin/auth/login` | - | Admin login (sends 2FA OTP) |
+| POST | `/api/admin/auth/verify-otp` | - | Verify admin OTP |
+| GET | `/api/admin/dashboard` | Admin | Dashboard stats |
+| GET | `/api/admin/customers` | Admin | Customer list |
+
+## Module Structure
+
+```
+src/
+├── auth/            # Auth module (signup, login, OTP, tokens)
+├── product/         # Product CRUD + stock management
+├── review/          # Product reviews (CRUD, helpful, summary)
+├── order/           # Order placement, tracking, status
+├── address/         # User saved addresses
+├── customer/        # Admin customer aggregation
+├── dashboard/       # Admin dashboard stats
+├── notification/    # Email service (OTP, order updates)
+├── settings/        # App settings (email config)
+├── upload/          # Cloudinary image uploads
+├── middleware/      # Auth, validation, rate limiting
+└── utils/           # ApiError, ApiResponse, logger, asyncHandler
 ```
 
-## Request Lifecycle
+Each module follows: `model → service → controller → routes → index.js`
 
-```
-  Request
-    │
-    ▼
-  Helmet → CORS → Mongo Sanitize → Body Parser → Cookie Parser → Compression → Morgan
-    │
-    ▼
-  Rate Limiter (per-route)
-    │
-    ▼
-  Route Match → Validation? → Auth? → Admin? → Cache?
-    │                                             │
-    │                                         HIT ▼
-    │                                       Return cached
-    │
-    ▼ MISS
-  Controller → Service → MongoDB
-    │
-    ▼
-  Response (+ write to cache)
-    │
-    ▼
-  Error Handler (catches Mongoose, JWT, Multer, ApiError)
-```
-
-## Services
-
-Each service has its own README with architecture diagrams:
-
-| Service | Path | README | Description |
-|---------|------|--------|-------------|
-| **Auth** | `src/auth/` | [README](src/auth/README.md) | Signup, login, OTP, 2FA, JWT + refresh tokens |
-| **Product** | `src/product/` | [README](src/product/README.md) | CRUD, stock map, public + admin |
-| **Order** | `src/order/` | [README](src/order/README.md) | Atomic stock deduction, forward-only status |
-| **Address** | `src/address/` | [README](src/address/README.md) | Consumer CRUD with ownership checks |
-| **Customer** | `src/customer/` | [README](src/customer/README.md) | Derived from orders via aggregation |
-| **Dashboard** | `src/dashboard/` | [README](src/dashboard/README.md) | 5 aggregation endpoints for admin |
-| **Settings** | `src/settings/` | [README](src/settings/README.md) | Gmail connection + email triggers |
-| **Upload** | `src/upload/` | [README](src/upload/README.md) | Multer → Cloudinary pipeline |
-| **Notification** | `src/notification/` | [README](src/notification/README.md) | Gmail OAuth2 email sending |
-| **Middleware** | `src/middleware/` | [README](src/middleware/README.md) | Auth, cache, rate limit, validation, error |
-
-## Data Models
-
-```mermaid
-erDiagram
-    USER ||--o{ REFRESH_TOKEN : "has sessions"
-    USER ||--o{ ORDER : "places"
-    USER ||--o{ ADDRESS : "saves"
-    ORDER }o--|| PRODUCT : "snapshots items from"
-    OTP }o--|| USER : "sent to email of"
-
-    USER { string name; string email; string role; boolean isVerified }
-    PRODUCT { string name; number price; string status; map stock }
-    ORDER { string orderId; string status; number total; array items }
-    ADDRESS { string fullName; string city; string pincode }
-    CONFIG { string key; mixed value }
-```
-
-## API Routes (44 endpoints)
-
-| Method | Path | Auth | Service |
-|--------|------|------|---------|
-| POST | `/api/auth/send-otp` | - | Auth |
-| POST | `/api/auth/verify-otp` | - | Auth |
-| POST | `/api/auth/signup` | - | Auth |
-| POST | `/api/auth/login` | - | Auth |
-| POST | `/api/auth/refresh` | Cookie | Auth |
-| POST | `/api/auth/logout` | Cookie | Auth |
-| POST | `/api/auth/logout-all` | JWT | Auth |
-| POST | `/api/auth/reset-password` | - | Auth |
-| GET | `/api/auth/me` | JWT | Auth |
-| PATCH | `/api/auth/profile` | JWT | Auth |
-| POST | `/api/auth/change-password` | JWT | Auth |
-| POST | `/api/admin/auth/login` | - | Auth |
-| POST | `/api/admin/auth/verify-otp` | - | Auth |
-| GET | `/api/products` | - | Product |
-| GET | `/api/products/:id` | - | Product |
-| GET | `/api/admin/products` | Admin | Product |
-| POST | `/api/admin/products` | Admin | Product |
-| PUT | `/api/admin/products/:id` | Admin | Product |
-| DELETE | `/api/admin/products/:id` | Admin | Product |
-| PATCH | `/api/admin/products/:id/stock` | Admin | Product |
-| POST | `/api/orders` | JWT | Order |
-| GET | `/api/orders` | JWT | Order |
-| GET | `/api/orders/:orderId` | JWT | Order |
-| GET | `/api/admin/orders` | Admin | Order |
-| GET | `/api/admin/orders/:orderId` | Admin | Order |
-| PATCH | `/api/admin/orders/:orderId/status` | Admin | Order |
-| GET | `/api/addresses` | JWT | Address |
-| POST | `/api/addresses` | JWT | Address |
-| PUT | `/api/addresses/:id` | JWT | Address |
-| DELETE | `/api/addresses/:id` | JWT | Address |
-| GET | `/api/admin/customers` | Admin | Customer |
-| GET | `/api/admin/customers/:phone` | Admin | Customer |
-| GET | `/api/admin/dashboard/stats` | Admin | Dashboard |
-| GET | `/api/admin/dashboard/revenue-by-day` | Admin | Dashboard |
-| GET | `/api/admin/dashboard/status-breakdown` | Admin | Dashboard |
-| GET | `/api/admin/dashboard/top-products` | Admin | Dashboard |
-| GET | `/api/admin/dashboard/recent-orders` | Admin | Dashboard |
-| GET | `/api/admin/settings/connections` | Admin | Settings |
-| PUT | `/api/admin/settings/connections/:id` | Admin | Settings |
-| DELETE | `/api/admin/settings/connections/:id` | Admin | Settings |
-| GET | `/api/admin/settings/email-triggers` | Admin | Settings |
-| PUT | `/api/admin/settings/email-triggers` | Admin | Settings |
-| POST | `/api/upload` | Admin | Upload |
-| DELETE | `/api/upload` | Admin | Upload |
-| GET | `/api/health` | - | Health |
-
-## Getting Started
+## Setup
 
 ```bash
 npm install
-cp .env.example .env       # edit with your MongoDB URI, JWT secrets
-npm run seed               # creates admin + sample data
-npm run dev                # starts on :5000
-curl localhost:5000/api/health
+cp .env.example .env  # Fill in your credentials
+npm run dev           # Starts with nodemon on port 5001
 ```
 
-Seed creates: admin (`admin@oopsfashion.com` / `admin123`), 4 products, 7 orders, default config.
+## Security
+
+- JWT with 15min access + 7d refresh (httpOnly cookie)
+- Rate limiting (per-IP and per-email for OTP)
+- Input validation on all routes
+- Regex escaping to prevent ReDoS
+- Pagination capped at 100
+- CORS restricted to specific origins
+- Helmet security headers
+- MongoDB sanitization
+
+## Deployment
+
+Hosted on Render (free tier). Auto-deploys from `main` branch.
